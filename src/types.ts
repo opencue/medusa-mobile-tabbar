@@ -43,6 +43,11 @@ export type MobileTabBarProps = {
    * Defaults to a plain <a> tag when omitted.
    */
   renderLink?: (props: TabLinkProps) => ReactNode
+  /** Override the two internal aria strings. Defaults to English. */
+  ariaLabels?: {
+    showNav?: string
+    mobileNav?: string
+  }
   /** Extra class names on the outer <nav> wrapper */
   className?: string
 }

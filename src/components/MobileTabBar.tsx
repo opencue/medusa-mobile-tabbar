@@ -20,8 +20,11 @@ const DefaultLink = ({ href, children, className, ...props }: TabLinkProps) => (
 export const MobileTabBar = ({
   tabs,
   renderLink,
+  ariaLabels,
   className = "",
 }: MobileTabBarProps) => {
+  const showNavLabel = ariaLabels?.showNav ?? "Show navigation"
+  const mobileNavLabel = ariaLabels?.mobileNav ?? "Mobile navigation"
   const hidden = useTabBarHidden()
   const [collapsed, setCollapsed] = useState(false)
   const [compact, setCompact] = useState(false)
@@ -121,7 +124,7 @@ export const MobileTabBar = ({
       {/* Collapsed handle — tap to restore the nav */}
       <button
         type="button"
-        aria-label="Show navigation"
+        aria-label={showNavLabel}
         aria-hidden={!collapsed}
         tabIndex={collapsed ? 0 : -1}
         onClick={() => setCollapsed(false)}
@@ -142,7 +145,7 @@ export const MobileTabBar = ({
 
       <nav
         role="tablist"
-        aria-label="Mobile navigation"
+        aria-label={mobileNavLabel}
         aria-hidden={collapsed}
         className={`fixed left-1/2 z-[90] inline-flex items-stretch gap-[2px] rounded-[26px] border border-white/[0.08] backdrop-blur-[28px] backdrop-saturate-[1.8] transition-[transform,opacity,padding] ease-[cubic-bezier(0.34,0.02,0.5,1)] lg:hidden ${collapsed ? "duration-[180ms]" : "duration-300"} ${compact ? "p-1" : "p-1.5"} ${className}`}
         style={{
