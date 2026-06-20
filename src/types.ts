@@ -4,8 +4,10 @@ export type TabLinkProps = {
   href: string
   children: ReactNode
   className?: string
-  role?: string
-  "aria-selected"?: boolean
+  /** Set to "page" on the link for the currently-active route. */
+  "aria-current"?: "page" | undefined
+  /** Accessible name override (used to fold a badge count into the link name). */
+  "aria-label"?: string
   [key: string]: unknown
 }
 

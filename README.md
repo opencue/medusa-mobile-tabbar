@@ -67,6 +67,10 @@ direction, you don't need to do anything. To force it, pass `dir`:
 <MobileTabBar tabs={tabs} dir="rtl" />
 ```
 
+> **SSR tip:** with `dir="auto"` the bar renders left-to-right until it mounts and
+> reads the document, so a server-rendered RTL page shows a one-frame LTR layout.
+> If you render RTL on the server, pass `dir="rtl"` explicitly to avoid the flash.
+
 ## With Next.js `Link`
 
 ```tsx
