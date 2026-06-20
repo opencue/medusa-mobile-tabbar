@@ -48,6 +48,16 @@ export type MobileTabBarProps = {
     showNav?: string
     mobileNav?: string
   }
+  /**
+   * Layout direction for the bar. Tab order, badge position, and offsets all
+   * mirror automatically for right-to-left languages (Arabic, Hebrew, Persian,
+   * Urdu, …).
+   *
+   * - `"auto"` (default): read the document's direction (`<html dir>` /
+   *   computed `direction`) on mount, SSR-safe.
+   * - `"ltr"` / `"rtl"`: force a direction regardless of the document.
+   */
+  dir?: "ltr" | "rtl" | "auto"
   /** Extra class names on the outer <nav> wrapper */
   className?: string
 }
