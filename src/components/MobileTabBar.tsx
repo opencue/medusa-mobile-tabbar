@@ -5,8 +5,10 @@ import { useTabBarHidden } from "../hooks/useTabBarHidden"
 import type { MobileTabBarProps, TabLinkProps } from "../types"
 
 const TAB_BASE =
-  "inline-flex min-w-[72px] flex-col items-center gap-[3px] rounded-[20px] px-[14px] pt-2 pb-[7px] text-[10.5px] font-medium tracking-[0.005em] text-white/55 transition-[color,background-color,transform] duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] hover:text-white/85 active:scale-[0.94]"
+  "inline-flex min-w-[72px] flex-col items-center gap-[3px] rounded-[20px] px-[14px] pt-2 pb-[7px] text-[10.5px] font-medium tracking-[0.005em] text-white/55 transition-[color,background-color,transform] duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:text-white/85 active:scale-[0.9]"
 const TAB_ACTIVE = "!text-[#ff5b2e] bg-[rgba(255,91,46,0.12)]"
+const ICON_WRAP =
+  "relative inline-flex h-[26px] w-[26px] items-center justify-center transition-transform duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)]"
 
 const COLLAPSE_NEAR_BOTTOM_PX = 220
 const SHRINK_AFTER_PX = 48
@@ -21,6 +23,7 @@ export const MobileTabBar = ({
   tabs,
   renderLink,
   ariaLabels,
+  dir = "auto",
   className = "",
 }: MobileTabBarProps) => {
   const showNavLabel = ariaLabels?.showNav ?? "Show navigation"
@@ -28,8 +31,31 @@ export const MobileTabBar = ({
   const hidden = useTabBarHidden()
   const [collapsed, setCollapsed] = useState(false)
   const [compact, setCompact] = useState(false)
+  // Default to "ltr" until mounted so SSR markup matches the first client render.
+  const [autoDir, setAutoDir] = useState<"ltr" | "rtl">("ltr")
   const lastYRef = useRef(0)
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    if (dir !== "auto" || typeof document === "undefined") return
+    const root = document.documentElement
+    const detect = () => {
+      const declared = root.getAttribute("dir")
+      const resolved =
+        declared === "rtl" || declared === "ltr"
+          ? declared
+          : getComputedStyle(root).direction === "rtl"
+            ? "rtl"
+            : "ltr"
+      setAutoDir(resolved)
+    }
+    detect()
+    const observer = new MutationObserver(detect)
+    observer.observe(root, { attributes: true, attributeFilter: ["dir"] })
+    return () => observer.disconnect()
+  }, [dir])
+
+  const resolvedDir = dir === "auto" ? autoDir : dir
 
   useEffect(() => {
     if (typeof window === "undefined") return
@@ -70,12 +96,12 @@ export const MobileTabBar = ({
 
   const renderTab = (tab: MobileTabBarProps["tabs"][number]): ReactNode => {
     const icon = (
-      <span className="relative inline-flex h-[26px] w-[26px] items-center justify-center">
+      <span className={`${ICON_WRAP} ${tab.isActive ? "scale-110" : "scale-100"}`}>
         {tab.isActive ? tab.icon.filled : tab.icon.outline}
         {(tab.badge ?? 0) > 0 && (
           <span
-            className="pointer-events-none absolute -top-[3px] -right-[7px] inline-flex h-[17px] min-w-[17px] items-center justify-center rounded-full bg-[#ff5b2e] px-[5px] text-[10px] font-bold leading-none text-white [font-variant-numeric:tabular-nums]"
-            style={{ boxShadow: "0 0 0 2px rgba(20,20,22,0.95)" }}
+            className="pointer-events-none absolute -top-[3px] inline-flex h-[17px] min-w-[17px] items-center justify-center rounded-full bg-[#ff5b2e] px-[5px] text-[10px] font-bold leading-none text-white [font-variant-numeric:tabular-nums]"
+            style={{ insetInlineEnd: -7, boxShadow: "0 0 0 2px rgba(20,20,22,0.95)" }}
           >
             {tab.badge}
           </span>
@@ -124,6 +150,7 @@ export const MobileTabBar = ({
       {/* Collapsed handle — tap to restore the nav */}
       <button
         type="button"
+        dir={resolvedDir}
         aria-label={showNavLabel}
         aria-hidden={!collapsed}
         tabIndex={collapsed ? 0 : -1}
@@ -145,6 +172,7 @@ export const MobileTabBar = ({
 
       <nav
         role="tablist"
+        dir={resolvedDir}
         aria-label={mobileNavLabel}
         aria-hidden={collapsed}
         className={`fixed left-1/2 z-[90] inline-flex items-stretch gap-[2px] rounded-[26px] border border-white/[0.08] backdrop-blur-[28px] backdrop-saturate-[1.8] transition-[transform,opacity,padding] ease-[cubic-bezier(0.34,0.02,0.5,1)] lg:hidden ${collapsed ? "duration-[180ms]" : "duration-300"} ${compact ? "p-1" : "p-1.5"} ${className}`}

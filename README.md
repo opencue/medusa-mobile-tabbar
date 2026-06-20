@@ -54,6 +54,19 @@ tabs={[
 ]}
 ```
 
+## RTL / bidirectional languages
+
+The bar mirrors automatically for right-to-left languages (Arabic, Hebrew,
+Persian, Urdu, …): tab order reverses and the badge moves to the start side.
+
+By default `dir="auto"` reads the document direction (`<html dir>` / computed
+`direction`) and updates if it changes — so if your app already sets the page
+direction, you don't need to do anything. To force it, pass `dir`:
+
+```tsx
+<MobileTabBar tabs={tabs} dir="rtl" />
+```
+
 ## With Next.js `Link`
 
 ```tsx
@@ -100,6 +113,7 @@ function CheckoutPage() {
 | `tabs` | `TabItem[]` | required |
 | `renderLink` | `(props: TabLinkProps) => ReactNode` | `<a>` tag |
 | `ariaLabels` | `{ showNav?: string; mobileNav?: string }` | English |
+| `dir` | `"ltr" \| "rtl" \| "auto"` | `"auto"` |
 | `className` | `string` | `""` |
 
 ### `DEFAULT_LABELS`
@@ -119,4 +133,15 @@ type TabItem = {
   isActive: boolean
   badge?: number
 } & ({ href: string } | { onClick: () => void })
+```
+
+## Playground
+
+Preview LTR/RTL mirroring, the press / active-icon animations, and the
+scroll-collapse behavior locally (use a narrow viewport — the bar is
+`lg:hidden`):
+
+```bash
+npm install
+npm run playground
 ```
