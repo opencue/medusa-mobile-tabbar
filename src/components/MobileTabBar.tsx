@@ -1,14 +1,14 @@
 "use client"
 
-import { useEffect, useRef, useState, type ReactNode } from "react"
+import { Fragment, useEffect, useRef, useState, type ReactNode } from "react"
 import { useTabBarHidden } from "../hooks/useTabBarHidden"
 import type { MobileTabBarProps, TabLinkProps } from "../types"
 
 const TAB_BASE =
-  "inline-flex min-w-[72px] flex-col items-center gap-[3px] rounded-[20px] px-[14px] pt-2 pb-[7px] text-[10.5px] font-medium tracking-[0.005em] text-white/55 transition-[color,background-color,transform] duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:text-white/85 active:scale-[0.9]"
+  "inline-flex min-w-[72px] flex-col items-center gap-[3px] rounded-[20px] px-[14px] pt-2 pb-[7px] text-[10.5px] font-medium tracking-[0.005em] text-white/55 transition-[color,background-color,transform] duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:text-white/85 active:scale-[0.9] motion-reduce:transition-none motion-reduce:active:scale-100"
 const TAB_ACTIVE = "!text-[#ff5b2e] bg-[rgba(255,91,46,0.12)]"
 const ICON_WRAP =
-  "relative inline-flex h-[26px] w-[26px] items-center justify-center transition-transform duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)]"
+  "relative inline-flex h-[26px] w-[26px] items-center justify-center transition-transform duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)] motion-reduce:transition-none"
 
 const COLLAPSE_NEAR_BOTTOM_PX = 220
 const SHRINK_AFTER_PX = 48
@@ -95,15 +95,22 @@ export const MobileTabBar = ({
   const LinkRenderer = renderLink ?? DefaultLink
 
   const renderTab = (tab: MobileTabBarProps["tabs"][number]): ReactNode => {
+    const badgeCount = tab.badge ?? 0
+    const badgeText = badgeCount > 99 ? "99+" : String(badgeCount)
+    // When there's a badge, give the control an accessible name that includes the
+    // count (e.g. "Cart, 3") instead of a bare number floating in the icon.
+    const accessibleLabel = badgeCount > 0 ? `${tab.label}, ${badgeText}` : undefined
+
     const icon = (
       <span className={`${ICON_WRAP} ${tab.isActive ? "scale-110" : "scale-100"}`}>
         {tab.isActive ? tab.icon.filled : tab.icon.outline}
-        {(tab.badge ?? 0) > 0 && (
+        {badgeCount > 0 && (
           <span
+            aria-hidden="true"
             className="pointer-events-none absolute -top-[3px] inline-flex h-[17px] min-w-[17px] items-center justify-center rounded-full bg-[#ff5b2e] px-[5px] text-[10px] font-bold leading-none text-white [font-variant-numeric:tabular-nums]"
             style={{ insetInlineEnd: -7, boxShadow: "0 0 0 2px rgba(20,20,22,0.95)" }}
           >
-            {tab.badge}
+            {badgeText}
           </span>
         )}
       </span>
@@ -124,8 +131,8 @@ export const MobileTabBar = ({
           key={tab.id}
           type="button"
           onClick={tab.onClick}
-          role="tab"
-          aria-selected={tab.isActive}
+          aria-pressed={tab.isActive}
+          aria-label={accessibleLabel}
           className={tabClass}
         >
           {inner}
@@ -134,14 +141,15 @@ export const MobileTabBar = ({
     }
 
     return (
-      <span key={tab.id} role="tab" aria-selected={tab.isActive}>
+      <Fragment key={tab.id}>
         {LinkRenderer({
           href: tab.href as string,
           children: inner,
           className: tabClass,
-          "aria-selected": tab.isActive,
+          "aria-current": tab.isActive ? "page" : undefined,
+          "aria-label": accessibleLabel,
         })}
-      </span>
+      </Fragment>
     )
   }
 
@@ -155,7 +163,7 @@ export const MobileTabBar = ({
         aria-hidden={!collapsed}
         tabIndex={collapsed ? 0 : -1}
         onClick={() => setCollapsed(false)}
-        className="fixed left-1/2 z-[90] rounded-full border border-white/[0.08] backdrop-blur-[20px] backdrop-saturate-[1.6] transition-[transform,opacity] duration-200 ease-out lg:hidden"
+        className="fixed left-1/2 z-[90] rounded-full border border-white/[0.08] backdrop-blur-[20px] backdrop-saturate-[1.6] transition-[transform,opacity] duration-200 ease-out motion-reduce:transition-none lg:hidden"
         style={{
           bottom: "max(2px, calc(env(safe-area-inset-bottom) - 22px))",
           width: 60,
@@ -171,11 +179,10 @@ export const MobileTabBar = ({
       />
 
       <nav
-        role="tablist"
         dir={resolvedDir}
         aria-label={mobileNavLabel}
         aria-hidden={collapsed}
-        className={`fixed left-1/2 z-[90] inline-flex items-stretch gap-[2px] rounded-[26px] border border-white/[0.08] backdrop-blur-[28px] backdrop-saturate-[1.8] transition-[transform,opacity,padding] ease-[cubic-bezier(0.34,0.02,0.5,1)] lg:hidden ${collapsed ? "duration-[180ms]" : "duration-300"} ${compact ? "p-1" : "p-1.5"} ${className}`}
+        className={`fixed left-1/2 z-[90] inline-flex items-stretch gap-[2px] rounded-[26px] border border-white/[0.08] backdrop-blur-[28px] backdrop-saturate-[1.8] transition-[transform,opacity,padding] ease-[cubic-bezier(0.34,0.02,0.5,1)] motion-reduce:transition-none lg:hidden ${collapsed ? "duration-[180ms]" : "duration-300"} ${compact ? "p-1" : "p-1.5"} ${className}`}
         style={{
           bottom: "max(2px, calc(env(safe-area-inset-bottom) - 26px))",
           transform: `translateX(-50%) scale(${collapsed ? 0.3 : compact ? 0.82 : 1})`,
