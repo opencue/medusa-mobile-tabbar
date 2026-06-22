@@ -2,6 +2,7 @@ import { act, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { MobileTabBar } from "./MobileTabBar"
+import { STYLE_ELEMENT_ID } from "../styles"
 import type { TabItem } from "../types"
 
 const icon = { outline: <svg data-testid="outline" />, filled: <svg data-testid="filled" /> }
@@ -92,6 +93,35 @@ describe("controlled activeId", () => {
     ]
     render(<MobileTabBar tabs={tabs} dir="ltr" activeId="home" />)
     expect(screen.getByRole("link", { name: "Home" })).toHaveAttribute("aria-current", "page")
+  })
+})
+
+describe("stylesheet injection", () => {
+  it("injects a single shared <style> element with the component's styles", () => {
+    render(<MobileTabBar tabs={linkTabs()} dir="ltr" />)
+    render(<MobileTabBar tabs={linkTabs()} dir="ltr" />)
+    const styles = document.querySelectorAll(`#${STYLE_ELEMENT_ID}`)
+    expect(styles).toHaveLength(1)
+    expect(styles[0].textContent).toContain(".mtb-nav")
+  })
+})
+
+describe("sliding indicator", () => {
+  it("renders the indicator and reveals it for the active tab", () => {
+    const { container } = render(<MobileTabBar tabs={linkTabs()} dir="ltr" />)
+    const pill = container.querySelector(".mtb-indicator") as HTMLElement
+    expect(pill).toBeTruthy()
+    expect(pill.style.opacity).toBe("1")
+  })
+
+  it("hides the indicator when no tab is active", () => {
+    const tabs: TabItem[] = [
+      { id: "home", label: "Home", href: "/", isActive: false, icon },
+      { id: "store", label: "Store", href: "/store", isActive: false, icon },
+    ]
+    const { container } = render(<MobileTabBar tabs={tabs} dir="ltr" />)
+    const pill = container.querySelector(".mtb-indicator") as HTMLElement
+    expect(pill.style.opacity).toBe("0")
   })
 })
 

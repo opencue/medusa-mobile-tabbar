@@ -1,6 +1,6 @@
 # medusa-mobile-tabbar
 
-Floating iOS-style bottom tab bar for Medusa storefronts. Works with Next.js, TanStack Router, or plain React. Zero runtime deps beyond React.
+Floating iOS-style bottom tab bar for Medusa storefronts. Works with Next.js, TanStack Router, or plain React. **No Tailwind or CSS setup required** — the bar ships its own styles. Zero runtime deps beyond React.
 
 ## Install
 
@@ -53,6 +53,55 @@ tabs={[
   { id: "cart", label: t("cart.title"), onClick: openCart, ... },
 ]}
 ```
+
+## Styling & theming
+
+The bar is fully styled out of the box — **no Tailwind, no CSS import, no
+config**. It injects a small self-contained stylesheet at runtime the first time
+it mounts (once per page, shared by every instance). It only renders below
+`1024px` (a built-in `min-width: 1024px` hides it on desktop) and respects
+`prefers-reduced-motion`.
+
+Icon **sizing** is yours to control — the bar doesn't size your icons. Use
+whatever you like (Tailwind `h-6 w-6`, inline `style`, an SVG `width`/`height`,
+or a CSS rule like `.mtb-icon svg { width: 22px }`).
+
+### Theme with CSS variables
+
+Override any of these on an ancestor (`:root`, a layout wrapper, …) — they
+cascade in. Defaults shown:
+
+| Variable | Default | What it sets |
+|---|---|---|
+| `--mtb-accent` | `#ff5b2e` | active label/icon + badge background |
+| `--mtb-accent-soft` | `rgba(255,91,46,0.12)` | sliding active pill |
+| `--mtb-surface` | `rgba(20,20,22,0.72)` | nav glass background |
+| `--mtb-surface-handle` | `rgba(20,20,22,0.55)` | collapsed handle |
+| `--mtb-text` | `rgba(255,255,255,0.55)` | inactive label/icon |
+| `--mtb-text-hover` | `rgba(255,255,255,0.85)` | hover color |
+| `--mtb-border` | `rgba(255,255,255,0.08)` | hairline border |
+| `--mtb-radius` | `26px` | nav corner radius |
+| `--mtb-badge-text` | `#fff` | badge text |
+| `--mtb-badge-ring` | `rgba(20,20,22,0.95)` | badge outline ring |
+
+```css
+:root {
+  --mtb-accent: #3b82f6;
+  --mtb-accent-soft: rgba(59, 130, 246, 0.14);
+}
+```
+
+### SSR / avoiding a first-paint flash
+
+Because the stylesheet is injected on mount, a server-rendered page shows one
+unstyled frame before hydration. To avoid it, ship the styles eagerly — either
+import the stylesheet once in your app entry:
+
+```ts
+import "medusa-mobile-tabbar/styles.css"
+```
+
+or inline the exported `STYLE_CSS` string into a `<style>` tag during SSR.
 
 ## RTL / bidirectional languages
 
@@ -170,9 +219,9 @@ type TabItem = {
 
 ## Playground
 
-Preview LTR/RTL mirroring, the press / active-icon animations, and the
-scroll-collapse behavior locally (use a narrow viewport — the bar is
-`lg:hidden`):
+Preview LTR/RTL mirroring, the sliding active indicator, the press / active-icon
+animations, live accent theming, and the scroll-collapse behavior locally (use a
+narrow viewport — the bar is hidden ≥1024px):
 
 ```bash
 npm install
