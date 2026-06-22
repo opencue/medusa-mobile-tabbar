@@ -19,11 +19,20 @@ const DefaultLink = ({ href, children, className, ...props }: TabLinkProps) => (
   </a>
 )
 
+/** Short tactile pulse on tap, where the platform supports it. */
+const vibrate = () => {
+  if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
+    navigator.vibrate(10)
+  }
+}
+
 export const MobileTabBar = ({
   tabs,
   renderLink,
   ariaLabels,
   dir = "auto",
+  activeId,
+  haptics = false,
   className = "",
 }: MobileTabBarProps) => {
   const showNavLabel = ariaLabels?.showNav ?? "Show navigation"
@@ -95,6 +104,8 @@ export const MobileTabBar = ({
   const LinkRenderer = renderLink ?? DefaultLink
 
   const renderTab = (tab: MobileTabBarProps["tabs"][number]): ReactNode => {
+    // Controlled `activeId` wins when set; otherwise fall back to per-tab isActive.
+    const isActive = activeId != null ? tab.id === activeId : !!tab.isActive
     const badgeCount = tab.badge ?? 0
     const badgeText = badgeCount > 99 ? "99+" : String(badgeCount)
     // When there's a badge, give the control an accessible name that includes the
@@ -102,8 +113,8 @@ export const MobileTabBar = ({
     const accessibleLabel = badgeCount > 0 ? `${tab.label}, ${badgeText}` : undefined
 
     const icon = (
-      <span className={`${ICON_WRAP} ${tab.isActive ? "scale-110" : "scale-100"}`}>
-        {tab.isActive ? tab.icon.filled : tab.icon.outline}
+      <span className={`${ICON_WRAP} ${isActive ? "scale-110" : "scale-100"}`}>
+        {isActive ? tab.icon.filled : tab.icon.outline}
         {badgeCount > 0 && (
           <span
             aria-hidden="true"
@@ -123,15 +134,19 @@ export const MobileTabBar = ({
       </>
     )
 
-    const tabClass = `${TAB_BASE} ${tab.isActive ? TAB_ACTIVE : ""}`
+    const tabClass = `${TAB_BASE} ${isActive ? TAB_ACTIVE : ""}`
 
     if (tab.onClick) {
+      const onClick = tab.onClick
       return (
         <button
           key={tab.id}
           type="button"
-          onClick={tab.onClick}
-          aria-pressed={tab.isActive}
+          onClick={() => {
+            if (haptics) vibrate()
+            onClick()
+          }}
+          aria-pressed={isActive}
           aria-label={accessibleLabel}
           className={tabClass}
         >
@@ -146,8 +161,10 @@ export const MobileTabBar = ({
           href: tab.href as string,
           children: inner,
           className: tabClass,
-          "aria-current": tab.isActive ? "page" : undefined,
+          "aria-current": isActive ? "page" : undefined,
           "aria-label": accessibleLabel,
+          // Reinforce the tap; navigation still proceeds (no preventDefault).
+          onClick: haptics ? vibrate : undefined,
         })}
       </Fragment>
     )

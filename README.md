@@ -118,7 +118,36 @@ function CheckoutPage() {
 | `renderLink` | `(props: TabLinkProps) => ReactNode` | `<a>` tag |
 | `ariaLabels` | `{ showNav?: string; mobileNav?: string }` | English |
 | `dir` | `"ltr" \| "rtl" \| "auto"` | `"auto"` |
+| `activeId` | `string` | — |
+| `haptics` | `boolean` | `false` |
 | `className` | `string` | `""` |
+
+### Controlled active tab (`activeId`)
+
+Instead of setting `isActive` on every tab, pass the active tab's `id` once — the
+matching tab becomes active and the per-tab booleans can be dropped:
+
+```tsx
+const p = usePathname()
+const activeId =
+  p === "/" ? "home" : p.startsWith("/store") ? "store" : "categories"
+
+<MobileTabBar activeId={activeId} tabs={[
+  { id: "home",  label: "Home",  href: "/",      icon: { /* … */ } },
+  { id: "store", label: "Store", href: "/store", icon: { /* … */ } },
+]} />
+```
+
+`isActive` still works when `activeId` is omitted, so existing code is unaffected.
+
+### Haptics
+
+Pass `haptics` to fire a short `navigator.vibrate(10)` on tap (Android Chrome et
+al.; a no-op where unsupported, e.g. iOS Safari):
+
+```tsx
+<MobileTabBar haptics tabs={tabs} />
+```
 
 ### `DEFAULT_LABELS`
 
@@ -134,7 +163,7 @@ type TabItem = {
   id: string
   label: string
   icon: { outline: ReactNode; filled: ReactNode }
-  isActive: boolean
+  isActive?: boolean // optional — or drive it with the activeId prop
   badge?: number
 } & ({ href: string } | { onClick: () => void })
 ```
