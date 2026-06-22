@@ -8,6 +8,8 @@ export type TabLinkProps = {
   "aria-current"?: "page" | undefined
   /** Accessible name override (used to fold a badge count into the link name). */
   "aria-label"?: string
+  /** Present only when `haptics` is enabled; fires the tap pulse. */
+  onClick?: () => void
   [key: string]: unknown
 }
 
@@ -16,7 +18,8 @@ export type TabItem =
       id: string
       label: string
       icon: { outline: ReactNode; filled: ReactNode }
-      isActive: boolean
+      /** Active state. Optional — omit and use the `activeId` prop instead. */
+      isActive?: boolean
       badge?: number
       href: string
       onClick?: never
@@ -25,7 +28,8 @@ export type TabItem =
       id: string
       label: string
       icon: { outline: ReactNode; filled: ReactNode }
-      isActive: boolean
+      /** Active state. Optional — omit and use the `activeId` prop instead. */
+      isActive?: boolean
       badge?: number
       href?: never
       onClick: () => void
@@ -60,6 +64,17 @@ export type MobileTabBarProps = {
    * - `"ltr"` / `"rtl"`: force a direction regardless of the document.
    */
   dir?: "ltr" | "rtl" | "auto"
+  /**
+   * Controlled active tab. When set, the tab whose `id` matches is active and
+   * each tab's own `isActive` is ignored — so you can drop the per-tab booleans.
+   * Omit to keep using per-tab `isActive`.
+   */
+  activeId?: string
+  /**
+   * Fire a short `navigator.vibrate(10)` on tap where supported (Android Chrome
+   * et al.). No-op on unsupported platforms. Defaults to `false`.
+   */
+  haptics?: boolean
   /** Extra class names on the outer <nav> wrapper */
   className?: string
 }

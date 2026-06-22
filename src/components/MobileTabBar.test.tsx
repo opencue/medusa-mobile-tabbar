@@ -1,5 +1,6 @@
 import { act, render, screen, waitFor } from "@testing-library/react"
-import { afterEach, describe, expect, it } from "vitest"
+import userEvent from "@testing-library/user-event"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import { MobileTabBar } from "./MobileTabBar"
 import type { TabItem } from "../types"
 
@@ -69,5 +70,49 @@ describe("active semantics", () => {
     ]
     render(<MobileTabBar tabs={tabs} dir="ltr" />)
     expect(screen.getByRole("button", { name: "Home" })).toHaveAttribute("aria-pressed", "true")
+  })
+})
+
+describe("controlled activeId", () => {
+  it("activeId selects the active tab and overrides per-tab isActive", () => {
+    // Every tab claims isActive:false, but activeId="store" should win.
+    const tabs: TabItem[] = [
+      { id: "home", label: "Home", href: "/", isActive: false, icon },
+      { id: "store", label: "Store", href: "/store", isActive: false, icon },
+    ]
+    render(<MobileTabBar tabs={tabs} dir="ltr" activeId="store" />)
+    expect(screen.getByRole("link", { name: "Store" })).toHaveAttribute("aria-current", "page")
+    expect(screen.getByRole("link", { name: "Home" })).not.toHaveAttribute("aria-current")
+  })
+
+  it("works without any per-tab isActive booleans", () => {
+    const tabs: TabItem[] = [
+      { id: "home", label: "Home", href: "/", icon },
+      { id: "store", label: "Store", href: "/store", icon },
+    ]
+    render(<MobileTabBar tabs={tabs} dir="ltr" activeId="home" />)
+    expect(screen.getByRole("link", { name: "Home" })).toHaveAttribute("aria-current", "page")
+  })
+})
+
+describe("haptics", () => {
+  it("vibrates on tap only when enabled", async () => {
+    const vibrate = vi.fn()
+    vi.stubGlobal("navigator", { ...navigator, vibrate })
+    const user = userEvent.setup()
+    const onClick = vi.fn()
+    const tabs: TabItem[] = [{ id: "cart", label: "Cart", onClick, isActive: false, icon }]
+
+    const { rerender } = render(<MobileTabBar tabs={tabs} dir="ltr" haptics />)
+    await user.click(screen.getByRole("button", { name: "Cart" }))
+    expect(vibrate).toHaveBeenCalledWith(10)
+    expect(onClick).toHaveBeenCalledTimes(1)
+
+    vibrate.mockClear()
+    rerender(<MobileTabBar tabs={tabs} dir="ltr" />) // haptics off
+    await user.click(screen.getByRole("button", { name: "Cart" }))
+    expect(vibrate).not.toHaveBeenCalled()
+
+    vi.unstubAllGlobals()
   })
 })
