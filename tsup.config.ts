@@ -11,4 +11,6 @@ export default defineConfig({
   esbuildOptions(options) {
     options.jsx = "automatic"
   },
+  // Emit dist/styles.css from STYLE_CSS for SSR consumers who import the sheet.
+  onSuccess: "node scripts/build-css.mjs",
 })

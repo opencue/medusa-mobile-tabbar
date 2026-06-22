@@ -1,17 +1,24 @@
 "use client"
 
-import { Fragment, useEffect, useRef, useState, type ReactNode } from "react"
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useInsertionEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react"
 import { useTabBarHidden } from "../hooks/useTabBarHidden"
+import { ensureStyles } from "../styles"
 import type { MobileTabBarProps, TabLinkProps } from "../types"
-
-const TAB_BASE =
-  "inline-flex min-w-[72px] flex-col items-center gap-[3px] rounded-[20px] px-[14px] pt-2 pb-[7px] text-[10.5px] font-medium tracking-[0.005em] text-white/55 transition-[color,background-color,transform] duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:text-white/85 active:scale-[0.9] motion-reduce:transition-none motion-reduce:active:scale-100"
-const TAB_ACTIVE = "!text-[#ff5b2e] bg-[rgba(255,91,46,0.12)]"
-const ICON_WRAP =
-  "relative inline-flex h-[26px] w-[26px] items-center justify-center transition-transform duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)] motion-reduce:transition-none"
 
 const COLLAPSE_NEAR_BOTTOM_PX = 220
 const SHRINK_AFTER_PX = 48
+
+// useLayoutEffect warns during SSR; fall back to useEffect on the server.
+const useIsoLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect
 
 const DefaultLink = ({ href, children, className, ...props }: TabLinkProps) => (
   <a href={href} className={className} {...(props as Record<string, unknown>)}>
@@ -44,6 +51,14 @@ export const MobileTabBar = ({
   const [autoDir, setAutoDir] = useState<"ltr" | "rtl">("ltr")
   const lastYRef = useRef(0)
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const navRef = useRef<HTMLElement | null>(null)
+  const [indicator, setIndicator] = useState({ x: 0, y: 0, w: 0, h: 0, visible: false })
+
+  // Inject the self-contained stylesheet once (before layout, so measurements
+  // below see the real sizes). No Tailwind required.
+  useInsertionEffect(() => {
+    ensureStyles()
+  }, [])
 
   useEffect(() => {
     if (dir !== "auto" || typeof document === "undefined") return
@@ -65,6 +80,43 @@ export const MobileTabBar = ({
   }, [dir])
 
   const resolvedDir = dir === "auto" ? autoDir : dir
+
+  // Index of the active tab — controlled `activeId` wins, else per-tab isActive.
+  const activeIndex = tabs.findIndex((t) =>
+    activeId != null ? t.id === activeId : !!t.isActive
+  )
+
+  // Position the sliding pill over the active tab. The nav's first child is the
+  // indicator, so tab N is child N+1. offsetLeft/Top are layout-correct in both
+  // LTR and RTL, so no direction-specific math is needed.
+  const measure = useCallback(() => {
+    const nav = navRef.current
+    if (!nav || activeIndex < 0) {
+      setIndicator((s) => (s.visible ? { ...s, visible: false } : s))
+      return
+    }
+    const el = nav.children[activeIndex + 1] as HTMLElement | undefined
+    if (!el) return
+    setIndicator({
+      x: el.offsetLeft,
+      y: el.offsetTop,
+      w: el.offsetWidth,
+      h: el.offsetHeight,
+      visible: true,
+    })
+  }, [activeIndex])
+
+  useIsoLayoutEffect(() => {
+    measure()
+  }, [measure, compact, resolvedDir, tabs.length])
+
+  useEffect(() => {
+    const nav = navRef.current
+    if (!nav || typeof ResizeObserver === "undefined") return
+    const ro = new ResizeObserver(() => measure())
+    ro.observe(nav)
+    return () => ro.disconnect()
+  }, [measure])
 
   useEffect(() => {
     if (typeof window === "undefined") return
@@ -113,14 +165,10 @@ export const MobileTabBar = ({
     const accessibleLabel = badgeCount > 0 ? `${tab.label}, ${badgeText}` : undefined
 
     const icon = (
-      <span className={`${ICON_WRAP} ${isActive ? "scale-110" : "scale-100"}`}>
+      <span className={`mtb-icon${isActive ? " mtb-icon--active" : ""}`}>
         {isActive ? tab.icon.filled : tab.icon.outline}
         {badgeCount > 0 && (
-          <span
-            aria-hidden="true"
-            className="pointer-events-none absolute -top-[3px] inline-flex h-[17px] min-w-[17px] items-center justify-center rounded-full bg-[#ff5b2e] px-[5px] text-[10px] font-bold leading-none text-white [font-variant-numeric:tabular-nums]"
-            style={{ insetInlineEnd: -7, boxShadow: "0 0 0 2px rgba(20,20,22,0.95)" }}
-          >
+          <span className="mtb-badge" aria-hidden="true">
             {badgeText}
           </span>
         )}
@@ -130,11 +178,11 @@ export const MobileTabBar = ({
     const inner = (
       <>
         {icon}
-        <span className="leading-none">{tab.label}</span>
+        <span className="mtb-label">{tab.label}</span>
       </>
     )
 
-    const tabClass = `${TAB_BASE} ${isActive ? TAB_ACTIVE : ""}`
+    const tabClass = `mtb-tab${isActive ? " mtb-tab--active" : ""}`
 
     if (tab.onClick) {
       const onClick = tab.onClick
@@ -180,37 +228,41 @@ export const MobileTabBar = ({
         aria-hidden={!collapsed}
         tabIndex={collapsed ? 0 : -1}
         onClick={() => setCollapsed(false)}
-        className="fixed left-1/2 z-[90] rounded-full border border-white/[0.08] backdrop-blur-[20px] backdrop-saturate-[1.6] transition-[transform,opacity] duration-200 ease-out motion-reduce:transition-none lg:hidden"
+        className="mtb-handle"
         style={{
           bottom: "max(2px, calc(env(safe-area-inset-bottom) - 22px))",
-          width: 60,
-          height: 8,
           transform: `translateX(-50%) scale(${collapsed ? 1 : 0.4})`,
           opacity: collapsed ? 1 : 0,
           pointerEvents: collapsed ? "auto" : "none",
           transitionDelay: collapsed ? "120ms" : "0ms",
-          background: "rgba(20, 20, 22, 0.55)",
-          boxShadow:
-            "inset 0 1px 0 rgba(255,255,255,0.08), 0 8px 22px -10px rgba(0,0,0,0.55)",
         }}
       />
 
       <nav
+        ref={navRef}
         dir={resolvedDir}
         aria-label={mobileNavLabel}
         aria-hidden={collapsed}
-        className={`fixed left-1/2 z-[90] inline-flex items-stretch gap-[2px] rounded-[26px] border border-white/[0.08] backdrop-blur-[28px] backdrop-saturate-[1.8] transition-[transform,opacity,padding] ease-[cubic-bezier(0.34,0.02,0.5,1)] motion-reduce:transition-none lg:hidden ${collapsed ? "duration-[180ms]" : "duration-300"} ${compact ? "p-1" : "p-1.5"} ${className}`}
+        className={`mtb-nav ${className}`.trim()}
         style={{
           bottom: "max(2px, calc(env(safe-area-inset-bottom) - 26px))",
           transform: `translateX(-50%) scale(${collapsed ? 0.3 : compact ? 0.82 : 1})`,
-          transformOrigin: "bottom center",
           opacity: collapsed ? 0 : compact ? 0.96 : 1,
           pointerEvents: collapsed ? "none" : "auto",
-          background: "rgba(20, 20, 22, 0.72)",
-          boxShadow:
-            "inset 0 1px 0 rgba(255,255,255,0.05), 0 20px 50px -18px rgba(0,0,0,0.7), 0 6px 18px -8px rgba(0,0,0,0.5)",
+          padding: compact ? 4 : 6,
+          transitionDuration: collapsed ? "180ms" : "300ms",
         }}
       >
+        <span
+          className="mtb-indicator"
+          aria-hidden="true"
+          style={{
+            transform: `translate(${indicator.x}px, ${indicator.y}px)`,
+            width: indicator.w,
+            height: indicator.h,
+            opacity: indicator.visible ? 1 : 0,
+          }}
+        />
         {tabs.map(renderTab)}
       </nav>
     </>
