@@ -1,6 +1,6 @@
 {
   "name": "medusa-mobile-tabbar",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Floating iOS-style bottom tab bar for Medusa storefronts — framework-agnostic React component",
   "keywords": [
     "medusa",
@@ -51,5 +51,13 @@
     "typescript": "^5.5.0",
     "vite": "^5.4.0",
     "vitest": "^2.1.0"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/opencue/medusa-mobile-tabbar.git"
+  },
+  "bugs": {
+    "url": "https://github.com/opencue/medusa-mobile-tabbar/issues"
+  },
+  "homepage": "https://github.com/opencue/medusa-mobile-tabbar#readme"
 }
